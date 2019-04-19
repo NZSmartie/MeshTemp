@@ -170,7 +170,7 @@ static const struct bt_mesh_model_op gen_onoff_cli_op[] = {
 struct onoff_state {
 	u8_t current;
 	u8_t previous;
-	u8_t led_gpio_pin;
+	/* u8_t led_gpio_pin; */
 	struct device *led_device;
 };
 
@@ -180,7 +180,8 @@ struct onoff_state {
  */
 
 static struct onoff_state onoff_state[] = {
-	{ .led_gpio_pin = LED0_GPIO_PIN },
+  {},
+	/* { .led_gpio_pin = LED0_GPIO_PIN }, */
 	/* { .led_gpio_pin = LED1_GPIO_PIN }, */
 	/* { .led_gpio_pin = LED2_GPIO_PIN }, */
 	/* { .led_gpio_pin = LED3_GPIO_PIN }, */
@@ -332,9 +333,9 @@ static void gen_onoff_set_unack(struct bt_mesh_model *model,
 	       bt_mesh_model_elem(model)->addr, onoff_state->current);
 
 	/* Pin set low turns on LED's on the nrf52840-pca10056 board */
-	gpio_pin_write(onoff_state->led_device,
-		       onoff_state->led_gpio_pin,
-		       onoff_state->current ? 0 : 1);
+	/* gpio_pin_write(onoff_state->led_device, */
+	/* 	       onoff_state->led_gpio_pin, */
+	/* 	       onoff_state->current ? 0 : 1); */
 
 	/*
 	 * If a server has a publish address, it is required to
@@ -589,13 +590,13 @@ static void bt_ready(int err)
 	printk("Mesh initialized\n");
 }
 
-void init_led(u8_t dev, const char *port, u32_t pin_num)
-{
-	onoff_state[dev].led_device = device_get_binding(port);
-	gpio_pin_configure(onoff_state[dev].led_device,
-			   pin_num, GPIO_DIR_OUT | GPIO_PUD_PULL_UP);
-	gpio_pin_write(onoff_state[dev].led_device, pin_num, 1);
-}
+/* void init_led(u8_t dev, const char *port, u32_t pin_num) */
+/* { */
+/* 	onoff_state[dev].led_device = device_get_binding(port); */
+/* 	gpio_pin_configure(onoff_state[dev].led_device, */
+/* 			   pin_num, GPIO_DIR_OUT | GPIO_PUD_PULL_UP); */
+/* 	gpio_pin_write(onoff_state[dev].led_device, pin_num, 1); */
+/* } */
 
 void main(void)
 {
@@ -635,7 +636,7 @@ void main(void)
 	/* gpio_pin_enable_callback(sw_device, SW3_GPIO_PIN); */
 
 	/* Initialize LED's */
-	init_led(0, LED0_GPIO_CONTROLLER, LED0_GPIO_PIN);
+	/* init_led(0, LED0_GPIO_CONTROLLER, LED0_GPIO_PIN); */
 	/* init_led(1, LED1_GPIO_CONTROLLER, LED1_GPIO_PIN); */
 	/* init_led(2, LED2_GPIO_CONTROLLER, LED2_GPIO_PIN); */
 	/* init_led(3, LED3_GPIO_CONTROLLER, LED3_GPIO_PIN); */

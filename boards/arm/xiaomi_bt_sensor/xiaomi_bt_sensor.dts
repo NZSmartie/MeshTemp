@@ -20,12 +20,12 @@
 	};
 
 	/* These aliases are provided for compatibility with samples */
-  /*
+  
 	aliases {
-		led0 = &led0;
+		/* led0 = &led0; */
 		sw0 = &button0;
-	};
-
+  };
+  /*
 	leds {
 		compatible = "gpio-leds";
 		led0: led_0 {
@@ -40,8 +40,8 @@
 		compatible = "gpio-keys";
 		button0: button_0 {
 			/* gpio flags need validation */
-			gpios = <&gpio0 15 GPIO_INT_ACTIVE_LOW>;
-			label = "Button";
+			gpios = <&gpio0 8 GPIO_INT_ACTIVE_LOW>;
+			label = "Clicky click";
 		};
 	};
 };
