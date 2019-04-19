@@ -1,4 +1,4 @@
-if BOARD_NRF51_VBLUNO51
+if BOARD_NRF51_XIAOMI_BT_SENSOR
 
 config BOARD
 	default "nrf51_xiaomi_bt_sensor"
