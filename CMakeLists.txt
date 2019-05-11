@@ -5,7 +5,7 @@ set(QEMU_EXTRA_FLAGS -s)
 
 set(BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
-set(BOARD xiaomi_bt_sensor)
+set(BOARD xiaomi_bt_sensor_mod)
 
 include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)
 project(onoff-app)
