@@ -13,4 +13,4 @@ endif # I2C
 config BT_CTLR
 	default BT
 
-endif
+endif # BOARD_NRF51_XIAOMI_BT_SENSOR
