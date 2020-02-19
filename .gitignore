@@ -1,6 +1,1 @@
-zephyr
 build
-modules
-net-tools
-
-.west/west
