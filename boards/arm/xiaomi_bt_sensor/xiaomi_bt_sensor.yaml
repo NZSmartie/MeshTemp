@@ -7,3 +7,8 @@ toolchain:
   - gnuarmemb
   - xtools
 ram: 16
+supported:
+  - ble
+  - i2c
+  - spi
+  - gpio

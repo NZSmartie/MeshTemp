@@ -1,4 +1,4 @@
-identifier: nrf51_xiaomi_bt_sensor_mod
+identifier: nrf51_xiaomi_bt_sensor
 name: nRF51-Xiaomi
 type: mcu
 arch: arm
@@ -7,3 +7,8 @@ toolchain:
   - gnuarmemb
   - xtools
 ram: 32
+supported:
+  - ble
+  - i2c
+  - spi
+  - gpio
