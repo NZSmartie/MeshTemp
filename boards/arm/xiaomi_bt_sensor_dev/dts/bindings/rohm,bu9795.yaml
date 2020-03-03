@@ -1,0 +1,5 @@
+description: BU97975 Standard LCD Segment Driver
+
+compatible: "rohm,bu9795"
+
+include: spi-device.yaml

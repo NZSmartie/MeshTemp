@@ -1,0 +1,11 @@
+config BU9795
+	depends on SPI
+	bool "Enable support for the LCD segment drivers"
+
+if BU9795
+
+module = BU9795
+module-str = BU9795
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # BU9795
