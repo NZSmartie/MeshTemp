@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "arm-zephyr-eabi",
+            "includePath": [
+                "${workspaceFolder}/src/**",
+                "${workspaceFolder}/build/zephyr/include/**",
+                "${workspaceFolder}/../zephyr/include/**",
+                "${workspaceFolder}/../modules/**",
+                "${env:ZEPHYR_SDK_INSTALL_DIR}/arm-zephyr-eabi/arm-zephyr-eabi/include"
+            ],
+            "defines": [],
+            "forcedInclude": [
+                "${workspaceFolder}/build/zephyr/include/generated/autoconf.h"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "gcc-x86"
+        }
+    ],
+    "version": 4
+}
