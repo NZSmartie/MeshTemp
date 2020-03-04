@@ -13,18 +13,39 @@ extern "C" {
 #include <device.h>
 
 struct bu9795_driver_api {
-    void (*print)(struct device *dev);
+	void (*clear)(struct device *dev);
+	void (*set_segment)(struct device *dev, u8_t segment, u8_t value);
+	void (*set_symbol)(struct device *dev, u8_t symbol, u8_t state);
+#if CONFIG_BU9795_TEST_PATTERN
+	void (*set_test_pattern)(struct device *dev, u8_t stage);
+#endif
 };
 
-__syscall     void        bu9795_print(struct device *dev);
-static inline void z_impl_bu9795_print(struct device *dev)
+static inline void bu9795_clear(struct device *dev)
 {
-    const struct bu9795_driver_api *api = dev->driver_api;
-
-    __ASSERT(api->print, "Callback pointer should not be NULL");
-
-    api->print(dev);
+	const struct bu9795_driver_api *api = dev->driver_api;
+	api->clear(dev);
 }
+
+static inline void bu9795_set_segment(struct device *dev, u8_t segment, u8_t value)
+{
+	const struct bu9795_driver_api *api = dev->driver_api;
+	api->set_segment(dev, segment, value);
+}
+
+static inline void bu9795_set_symbol(struct device *dev, u8_t symbol, u8_t state)
+{
+	const struct bu9795_driver_api *api = dev->driver_api;
+	api->set_symbol(dev, symbol, state);
+}
+
+#if CONFIG_BU9795_TEST_PATTERN
+static inline void bu9795_set_test_pattern(struct device *dev, u8_t stage)
+{
+	const struct bu9795_driver_api *api = dev->driver_api;
+	api->set_test_pattern(dev, stage);
+}
+#endif
 
 #ifdef __cplusplus
 }

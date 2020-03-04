@@ -1,8 +1,12 @@
-config BU9795
+menuconfig BU9795
 	depends on SPI
-	bool "Enable support for the LCD segment drivers"
+	bool "Rohm BU9795 LCD segment drivers"
 
 if BU9795
+
+config BU9795_TEST_PATTERN
+	depends on BU9795
+	bool "Enable test pattern API"
 
 module = BU9795
 module-str = BU9795
