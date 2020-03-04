@@ -14,6 +14,7 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(bu9795, CONFIG_BU9795_LOG_LEVEL);
 
+// Size (in bytes) of the entire (including dummy) segment register on the BU9795.
 #define BU9795_SEG_REGISTER_SIZE 15
 
 #define BU9795_CMD_DATA_BIT BIT(7)
@@ -157,6 +158,12 @@ static int bu9795_write_data(struct device *dev, u8_t addr, const u8_t *payload,
     return spi_write(data->spi_dev, &config->spi_cfg, &tx);
 }
 
+static int bu9795_flush(struct device *dev)
+{
+    struct bu9795_data *data = dev->driver_data;
+    return bu9795_write_data(dev, 0, data->data, BU9795_SEG_REGISTER_SIZE);
+}
+
 static int bu9795_init(struct device *dev)
 {
     struct bu9795_data *data = dev->driver_data;
@@ -245,7 +252,7 @@ static void clear_impl(struct device *dev)
 
     // Clear the local copy of the segment register first
     memset(data->data, 0, BU9795_SEG_REGISTER_SIZE);
-    bu9795_write_data(dev, 0, data->data, BU9795_SEG_REGISTER_SIZE);
+    bu9795_flush(dev);
 }
 
 static void set_segment_impl(struct device *dev, u8_t segment, u8_t value)
@@ -259,9 +266,36 @@ static void set_symbol_impl(struct device *dev, u8_t symbol, u8_t state)
 }
 
 #if CONFIG_BU9795_TEST_PATTERN
-static void set_test_pattern_impl(struct device *dev, u8_t stage)
-{
+#include <math.h>
 
+static void set_test_pattern_impl(struct device *dev, int stage)
+{
+    struct bu9795_data *data = dev->driver_data;
+
+    const int max_pattern_stages = (int)ceil(log2(BU9795_SEG_REGISTER_SIZE * 8));
+
+    // Limit stage to bounds of max stages
+    stage = stage % (max_pattern_stages + 1);
+
+    int pattern_width = (int)pow(2, max_pattern_stages - stage);
+
+    // Only apply alternating bits when the width is less than 4.
+    u8_t bit_pattern =
+        pattern_width == 4 ? 0xF0 :
+        pattern_width == 2 ? 0xCC :
+        pattern_width == 1 ? 0xAA :
+                             0x00;
+
+    for(int i = 0; i < BU9795_SEG_REGISTER_SIZE; i++)
+    {
+        // Invert the bit pattern. (Note that on first loop, bit pattern will be inverted as 0 % n = 0)
+        if(pattern_width>=8 && (i % (pattern_width/8) == 0))
+            bit_pattern ^= 0xFF;
+
+        data->data[i] = bit_pattern;
+    }
+
+    bu9795_flush(dev);
 }
 #endif
 

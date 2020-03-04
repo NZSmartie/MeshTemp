@@ -17,7 +17,7 @@ struct bu9795_driver_api {
 	void (*set_segment)(struct device *dev, u8_t segment, u8_t value);
 	void (*set_symbol)(struct device *dev, u8_t symbol, u8_t state);
 #if CONFIG_BU9795_TEST_PATTERN
-	void (*set_test_pattern)(struct device *dev, u8_t stage);
+	void (*set_test_pattern)(struct device *dev, int stage);
 #endif
 };
 
@@ -40,7 +40,7 @@ static inline void bu9795_set_symbol(struct device *dev, u8_t symbol, u8_t state
 }
 
 #if CONFIG_BU9795_TEST_PATTERN
-static inline void bu9795_set_test_pattern(struct device *dev, u8_t stage)
+static inline void bu9795_set_test_pattern(struct device *dev, int stage)
 {
 	const struct bu9795_driver_api *api = dev->driver_api;
 	api->set_test_pattern(dev, stage);

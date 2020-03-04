@@ -4,6 +4,7 @@
             "name": "arm-zephyr-eabi",
             "includePath": [
                 "${workspaceFolder}/src/**",
+                "${workspaceFolder}/drivers/**",
                 "${workspaceFolder}/build/zephyr/include/**",
                 "${workspaceFolder}/../zephyr/include/**",
                 "${workspaceFolder}/../modules/**",
