@@ -21,6 +21,7 @@
 
 	aliases {
 		sw0 = &button0;
+		segment0 = &segment0;
   };
 
 	buttons {
@@ -57,7 +58,7 @@
 	miso-pin = <27>; // Assign to an unused pin for now
 	cs-gpios = <&gpio0 11 0>;
 
-	segment@0 {
+	segment0: segment@0 {
 		compatible = "rohm,bu9795";
 		status = "okay";
 		spi-max-frequency = <2000000>;
