@@ -10,6 +10,7 @@ CONFIG_GPIO=y
 #enable SPI
 CONFIG_SPI=y
 CONFIG_SPI_0=y
+CONFIG_SPI_0_NRF_SPI=y
 
 # enable uart driver
 CONFIG_SERIAL=y

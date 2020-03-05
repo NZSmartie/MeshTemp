@@ -55,13 +55,14 @@
 	sck-pin = <10>;
 	mosi-pin = <9>;
 	// TODO: figure out if a MISO pin has been used
-	miso-pin = <27>; // Assign to an unused pin for now
+	miso-pin = <7>; // Assign to an unused pin for now
+	miso-pull-down;
 	cs-gpios = <&gpio0 11 0>;
 
 	segment0: segment@0 {
 		compatible = "rohm,bu9795";
 		status = "okay";
-		spi-max-frequency = <2000000>;
+		spi-max-frequency = <200000>;
 		label = "BU9795";
 		reg = <0>;
 	};
