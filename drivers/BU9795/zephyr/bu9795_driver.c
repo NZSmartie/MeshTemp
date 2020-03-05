@@ -171,7 +171,7 @@ static int bu9795_init(struct device *dev)
     int err;
     uint8_t command;
 
-    data->spi_dev = device_get_binding(config->spi_cs_dev_name);
+    data->spi_dev = device_get_binding(config->spi_dev_name);
     if (data->spi_dev == NULL) {
         LOG_ERR("SPI master device '%s' not found", config->spi_dev_name);
         return -EINVAL;
