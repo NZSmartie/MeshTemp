@@ -1,0 +1,24 @@
+// Our modded board has a nRF51822_QFAC instead of a QFAA.
+#include <nordic/nrf51822_qfac.dtsi>
+
+/ {
+	model = "Xiaomi Bluetooth Temperature/Humidity Sensor (development)";
+	compatible = "nordic,nrf51822-qfac", "nordic,nrf51822";
+};
+
+// Because ofthe #include statement above, we need to re-enable peripherals
+&gpiote {
+	status ="okay";
+};
+
+&gpio0 {
+	status ="okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&spi0 {
+	status = "okay";
+};
