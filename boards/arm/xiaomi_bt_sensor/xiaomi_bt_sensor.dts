@@ -57,7 +57,7 @@
 	// TODO: figure out if a MISO pin has been used
 	miso-pin = <7>; // Assign to an unused pin for now
 	miso-pull-down;
-	cs-gpios = <&gpio0 11 0>;
+	cs-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
 
 	segment0: segment@0 {
 		compatible = "rohm,bu9795";

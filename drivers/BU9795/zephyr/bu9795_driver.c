@@ -27,20 +27,20 @@ LOG_MODULE_REGISTER(bu9795, CONFIG_BU9795_LOG_LEVEL);
 #define BU9795_CMD_ALL_PIXEL        0x7C
 
 #define DISPLAY_MODE_BIT    BIT(3)
-#define DISPLAY_ON          0x04
+#define DISPLAY_ON          0x08
 #define DISPLAY_OFF         0x00
 
 #define DISPLAY_BIAS_LEVEL_BIT  BIT(2)
 #define DISPLAY_BIAS_LEVEL_1_3  0x00
-#define DISPLAY_BIAS_LEVEL_1_2  0x02
+#define DISPLAY_BIAS_LEVEL_1_2  0x04
 
 #define BU9795_ADDRESS_MASK 0x1F
 
 #define BU9795_DISPLAY_FREQ_MASK    (BIT(4) | BIT(3))
 #define BU9795_DISPLAY_FREQ_80      0x00
-#define BU9795_DISPLAY_FREQ_71      0x04
-#define BU9795_DISPLAY_FREQ_64      0x08
-#define BU9795_DISPLAY_FREQ_53      0x0C
+#define BU9795_DISPLAY_FREQ_71      0x08
+#define BU9795_DISPLAY_FREQ_64      0x10
+#define BU9795_DISPLAY_FREQ_53      0x18
 
 #define BU9795_DISPLAY_WAVEFORM_MASK    BIT(2)
 #define BU9795_DISPLAY_WAVEFORM_LINE    0x00
@@ -84,7 +84,8 @@ struct bu9795_data {
 struct bu9795_config {
     const char *spi_dev_name;
     const char *spi_cs_dev_name;
-    uint8_t spi_cs_pin;
+    gpio_pin_t spi_cs_pin;
+    gpio_dt_flags_t spi_cs_flags;
     struct spi_config spi_cfg;
 };
 
@@ -123,15 +124,21 @@ static uint8_t bu9795_set_all_pixels(uint8_t state){
         | (state & BU9795_ALL_PIXELS_MASK);
 }
 
-static int bu9795_write_cmd(struct device *dev, uint8_t cmd) {
+static int bu9795_write_commands(struct device *dev, uint8_t *commands, uint8_t length) {
     struct bu9795_data *data = dev->driver_data;
     const struct bu9795_config *config = dev->config->config_info;
     struct spi_buf tx_buf[1];
     struct spi_buf_set tx;
     int err;
 
-    tx_buf[0].buf = &cmd;
-    tx_buf[0].len = 1;
+    for(int i = 0; i < length; i++)
+        commands[i] |= BU9795_CMD_DATA_BIT;
+
+    LOG_HEXDUMP_DBG(commands, length, "Commands");
+
+
+    tx_buf[0].buf = commands;
+    tx_buf[0].len = length;
 
     tx.buffers = tx_buf;
     tx.count = 1;
@@ -145,7 +152,13 @@ static int bu9795_write_data(struct device *dev, u8_t addr, const u8_t *payload,
 {
     struct bu9795_data *data = dev->driver_data;
     const struct bu9795_config *config = dev->config->config_info;
-    u8_t command = bu9795_set_address(addr) | BU9795_CMD_DATA_BIT;
+
+    // TODO: set the MSB bit
+
+    u8_t command = bu9795_set_address(addr) & ~BU9795_CMD_DATA_BIT;
+
+    LOG_DBG("Set address command: 0x%02X", command);
+
     struct spi_buf tx_buf[] = {
         { .buf = &command, .len = 1},
         { .buf = (void*)payload, .len = len},
@@ -154,6 +167,8 @@ static int bu9795_write_data(struct device *dev, u8_t addr, const u8_t *payload,
         .buffers = tx_buf,
         .count = 2,
     };
+
+    LOG_HEXDUMP_DBG(payload, len, "Writing payload to BU9795");
 
     return spi_write(data->spi_dev, &config->spi_cfg, &tx);
 }
@@ -169,7 +184,6 @@ static int bu9795_init(struct device *dev)
     struct bu9795_data *data = dev->driver_data;
     const struct bu9795_config *config = dev->config->config_info;
     int err;
-    uint8_t command;
 
     data->spi_dev = device_get_binding(config->spi_dev_name);
     if (data->spi_dev == NULL) {
@@ -187,59 +201,40 @@ static int bu9795_init(struct device *dev)
         } else {
             LOG_DBG("SPI CS GPIO device '%s' found", config->spi_cs_dev_name);
         }
-
+        gpio_pin_configure(data->spi_cs.gpio_dev, config->spi_cs_pin, GPIO_OUTPUT_INACTIVE | GPIO_ACTIVE_HIGH);
         data->spi_cs.gpio_pin = config->spi_cs_pin;
     } else {
         LOG_WRN("SPI CS GPIO device not configured");
     }
 
-    // Reset the segment display driver
-    command = bu9795_reset();
-    err = bu9795_write_cmd(dev, command);
+    k_usleep(200);
+
+    u8_t init_commands[] = {
+        bu9795_reset(),
+        bu9795_set_blick_rate(BU9795_BLINK_RATE_OFF),
+        bu9795_set_display_control(BU9795_DISPLAY_FREQ_80, BU9795_DISPLAY_WAVEFORM_FRAME, BU9795_DISPLAY_POWER_NORMAL),
+        bu9795_set_ic(BU9795_IC_MSB_0, BU9795_IC_CLOCK_INTERMAL),
+    };
+
+    err = bu9795_write_commands(dev, init_commands, sizeof(init_commands) / sizeof(init_commands[0]));
+
     if(err){
-        LOG_ERR("Failed to reset BU9795: SPI error '%d'", err);
+        LOG_ERR("Failed to initalise BU9795: SPI error '%d'", err);
         return err;
     }
 
+    err = bu9795_flush(dev);
 
-    command = bu9795_set_blick_rate(BU9795_BLINK_RATE_HALF);
-    err = bu9795_write_cmd(dev, command);
     if(err){
-        LOG_ERR("Failed to set blink rate on BU9795: SPI error '%d'", err);
+        LOG_ERR("Failed to write segment data BU9795: SPI error '%d'", err);
         return err;
     }
 
-    command = bu9795_set_display_control(BU9795_DISPLAY_FREQ_80, BU9795_DISPLAY_WAVEFORM_FRAME, BU9795_DISPLAY_POWER_NORMAL);
-    err = bu9795_write_cmd(dev, command);
-    if(err){
-        LOG_ERR("Failed to set display on BU9795: SPI error '%d'", err);
-        return err;
-    }
+    u8_t display_command = bu9795_set_mode(DISPLAY_ON, DISPLAY_BIAS_LEVEL_1_3);
+    err = bu9795_write_commands(dev, &display_command, 1);
 
-    command = bu9795_set_ic(BU9795_IC_MSB_0, BU9795_IC_CLOCK_INTERMAL);
-    err = bu9795_write_cmd(dev, command);
     if(err){
-        LOG_ERR("Failed to configure BU9795: SPI error '%d'", err);
-        return err;
-    }
-
-    command = bu9795_set_address(0);
-    err = bu9795_write_cmd(dev, command);
-    if(err){
-        LOG_ERR("Failed to configure BU9795: SPI error '%d'", err);
-        return err;
-    }
-
-    err = bu9795_write_data(dev, 0, data->data, 15);
-    if(err){
-        LOG_ERR("Failed initialise segment data on BU9795: SPI error '%d'", err);
-        return err;
-    }
-
-    command = bu9795_set_mode(DISPLAY_ON, DISPLAY_BIAS_LEVEL_1_3);
-    err = bu9795_write_cmd(dev, command);
-    if(err){
-        LOG_ERR("Failed to set display mode on BU9795: SPI error '%d'", err);
+        LOG_ERR("Failed to turn display on BU9795: SPI error '%d'", err);
         return err;
     }
 
@@ -276,11 +271,14 @@ static void set_test_pattern_impl(struct device *dev, int stage)
 
     // Limit stage to bounds of max stages
     stage = stage % (max_pattern_stages + 1);
+    LOG_DBG("Setting pattern to stage %d", stage);
 
     int pattern_width = (int)pow(2, max_pattern_stages - stage);
 
-    // Only apply alternating bits when the width is less than 4.
+    // Apply alternating bits when the width is less than 4.
+    // Stage 0 is all pixels on.
     u8_t bit_pattern =
+                // stage == 0 ? 0xFF :
         pattern_width == 4 ? 0xF0 :
         pattern_width == 2 ? 0xCC :
         pattern_width == 1 ? 0xAA :
@@ -319,8 +317,9 @@ static const struct bu9795_config bu9795_config_0 = {
     .spi_dev_name = DT_INST_0_ROHM_BU9795_BUS_NAME,
     .spi_cs_dev_name = DT_INST_0_ROHM_BU9795_CS_GPIOS_CONTROLLER,
     .spi_cs_pin = DT_INST_0_ROHM_BU9795_CS_GPIOS_PIN,
+    .spi_cs_flags = DT_INST_0_ROHM_BU9795_CS_GPIOS_FLAGS,
     .spi_cfg = {
-        .operation = (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)),
+        .operation = (SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_MODE_CPHA | SPI_MODE_CPOL | SPI_WORD_SET(8)),
         .frequency = DT_INST_0_ROHM_BU9795_SPI_MAX_FREQUENCY,
         .slave = DT_INST_0_ROHM_BU9795_BASE_ADDRESS,
         .cs = &bu9795_data_0.spi_cs,
