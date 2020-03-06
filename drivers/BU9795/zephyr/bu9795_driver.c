@@ -72,6 +72,21 @@ LOG_MODULE_REGISTER(bu9795, CONFIG_BU9795_LOG_LEVEL);
 #define BU9795_ALL_PIXELS_ON    0x02
 #define BU9795_ALL_PIXELS_OFF   0x01
 
+
+// TODO: Figure out a good way to configure the mappings in zephyr for a per-application project.
+#define SEGMENTS 6
+#define SYMBOLS 5
+
+struct  bu9795_segment {
+    u8_t mask[BU9795_SEG_REGISTER_SIZE];
+    u8_t digits[10][BU9795_SEG_REGISTER_SIZE];
+};
+
+struct bu9795_segment_map {
+    struct bu9795_segment segments[SEGMENTS];
+    struct bu9795_segment symbols[SYMBOLS];
+};
+
 struct bu9795_data {
     struct device *spi_dev;
     struct spi_config spi_config;
@@ -87,6 +102,9 @@ struct bu9795_config {
     gpio_pin_t spi_cs_pin;
     gpio_dt_flags_t spi_cs_flags;
     struct spi_config spi_cfg;
+
+    const u8_t segments;
+    const struct bu9795_segment_map *segment_mapping;
 };
 
 static uint8_t bu9795_set_mode(uint8_t display_on, uint8_t bias){
@@ -252,7 +270,29 @@ static void clear_impl(struct device *dev)
 
 static void set_segment_impl(struct device *dev, u8_t segment, u8_t value)
 {
+    const struct bu9795_config *config = dev->config->config_info;
+    struct bu9795_data *data = dev->driver_data;
     // TODO: setup a mapping (or lookup table) fromBU9795's seg0...30 to the desired segment and value.
+    if (segment >= config->segments)
+    {
+        LOG_ERR("Segment %d is out of range 0-%d", segment, config->segments - 1);
+        return;
+    }
+
+    if (value >= 10)
+    {
+        LOG_ERR("Cannot display %d for segment %d", value, segment);
+        return;
+    }
+
+    const struct bu9795_segment *mapping = &config->segment_mapping->segments[segment];
+    for(int i = 0; i < BU9795_SEG_REGISTER_SIZE; i++)
+    {
+        data->data[i] &= mapping->mask[i];
+        data->data[i] |= mapping->digits[value][i];
+    }
+
+    bu9795_flush(dev);
 }
 
 static void set_symbol_impl(struct device *dev, u8_t symbol, u8_t state)
@@ -309,6 +349,37 @@ static const struct bu9795_driver_api bu9795_driver_api_impl = {
 // TODO: Somehow generate the following for each instance of BU97975
 #if DT_INST_0_ROHM_BU9795
 
+// TODO: Generate this mapping somehow
+const struct bu9795_segment_map bu9795_segment_map_0 = {
+    .segments = {
+        {
+            .mask = {0xff, 0xff, 0xf8, 0x00, '?', 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+            .digits = {
+                // 0
+                {0x00, 0x00, 0x07, 0xdf, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 1
+                {0x00, 0x00, 0x00, 0x07, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                /// 2
+                {0x00, 0x00, 0x07, 0xbd, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 3
+                {0x00, 0x00, 0x05, 0xbf, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 4
+                {0x00, 0x00, 0x04, 0xe7, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 5
+                {0x00, 0x00, 0x05, 0xff, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 6
+                {0x00, 0x00, 0x07, 0xff, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 7
+                {0x00, 0x00, 0x00, 0x8f, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 8
+                {0x00, 0x00, 0x07, 0xff, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+                // 9
+                {0x00, 0x00, 0x04, 0xef, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+            }
+        },
+    },
+};
+
 static struct bu9795_data bu9795_data_0 = {
     .data = {0},
 };
@@ -324,6 +395,9 @@ static const struct bu9795_config bu9795_config_0 = {
         .slave = DT_INST_0_ROHM_BU9795_BASE_ADDRESS,
         .cs = &bu9795_data_0.spi_cs,
     },
+
+    .segments = SEGMENTS,
+    .segment_mapping = &bu9795_segment_map_0,
 };
 
 
