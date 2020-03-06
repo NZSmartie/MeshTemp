@@ -19,9 +19,8 @@ struct device *dev_segment = NULL;
 
 #if CONFIG_BU9795_TEST_PATTERN
 int segment_pattern_stage = 0;
-#else
-int segment_0_value = 0;
 #endif
+int segment_0_value = 0;
 
 void button_pressed(struct device *dev, struct gpio_callback *cb, u32_t pins)
 {
@@ -34,7 +33,13 @@ void button_pressed(struct device *dev, struct gpio_callback *cb, u32_t pins)
         bu9795_set_test_pattern(dev_segment, segment_pattern_stage++);
     }
 #else
-    bu9795_set_segment(dev_segment, 0, segment_0_value++ % 10);
+    for(int i = 0; i < 6; i++)
+    {
+        bu9795_set_segment(dev_segment, i, (segment_0_value + i) % 10);
+        bu9795_set_symbol(dev_segment, i, (segment_0_value + i) % 10);
+    }
+    bu9795_flush(dev_segment);
+    segment_0_value++;
 #endif
 }
 
