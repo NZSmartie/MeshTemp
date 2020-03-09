@@ -5,42 +5,59 @@
 #include <zephyr.h>
 #include <device.h>
 #include <drivers/gpio.h>
+#include <drivers/sensor.h>
 #include <sys/printk.h>
 // TODO: Abstract this API to a generic segmented display
 #include <bu9795_driver.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(Application, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 static struct gpio_callback button_cb_data;
 
 struct device *dev_button = NULL;
 struct device *dev_segment = NULL;
-
-#if CONFIG_BU9795_TEST_PATTERN
-int segment_pattern_stage = 0;
-#endif
-int segment_0_value = 0;
+struct device *dev_sensor = NULL;
 
 void button_pressed(struct device *dev, struct gpio_callback *cb, u32_t pins)
 {
     LOG_INF("Button pressed at %" PRIu32 "\n", k_cycle_get_32());
+}
 
-#if CONFIG_BU9795_TEST_PATTERN
-    // With each button press, increment the pattern stage to help identify the segment mapping
-    if(dev == dev_button && (pins & BIT(DT_ALIAS_SW0_GPIOS_PIN)) && dev_segment != NULL)
+static int update_sensor(struct sensor_value *temp, struct sensor_value *hum)
+{
+    if(dev_sensor == NULL)
     {
-        bu9795_set_test_pattern(dev_segment, segment_pattern_stage++);
+        return -ENOENT;
     }
-#else
-    for(int i = 0; i < 6; i++)
+
+    LOG_DBG("Fetching sensor data");
+    int ret = sensor_sample_fetch(dev_sensor);
+    if (ret)
     {
-        bu9795_set_segment(dev_segment, i, (segment_0_value + i) % 10);
-        bu9795_set_symbol(dev_segment, i, (segment_0_value + i) % 10);
+        LOG_ERR("Could not get fetch sample from %s, errno: %d", dev_sensor->config->name, ret);
+        return ret;
     }
-    bu9795_flush(dev_segment);
-    segment_0_value++;
-#endif
+
+    LOG_DBG("Getting SENSOR_CHAN_AMBIENT_TEMP");
+    ret = sensor_channel_get(dev_sensor, SENSOR_CHAN_AMBIENT_TEMP, temp);
+    if (ret)
+    {
+        LOG_ERR("Could not get SENSOR_CHAN_AMBIENT_TEMP from %s, errno: %d", dev_sensor->config->name, ret);
+        return ret;
+    }
+
+    LOG_DBG("Getting SENSOR_CHAN_HUMIDITY");
+    ret = sensor_channel_get(dev_sensor, SENSOR_CHAN_HUMIDITY, hum);
+    if(ret)
+    {
+        LOG_ERR("Could not get SENSOR_CHAN_HUMIDITY from %s, errno: %d", dev_sensor->config->name, ret);
+        return ret;
+    }
+
+    LOG_DBG("Sensor updated");
+
+    return 0;
 }
 
 void main(void)
@@ -60,7 +77,11 @@ void main(void)
         LOG_ERR("Didn't find %s device", DT_ALIAS_SEGMENT0_LABEL);
         return;
     }
-    // bu9795_clear(dev_segment);
+
+    dev_sensor = device_get_binding(DT_ALIAS_SENSOR0_LABEL);
+    if (dev_sensor == NULL) {
+        LOG_ERR("Didn't find %s device", DT_ALIAS_SENSOR0_LABEL);
+    }
 
     ret = gpio_pin_configure(dev_button, DT_ALIAS_SW0_GPIOS_PIN, DT_ALIAS_SW0_GPIOS_FLAGS | GPIO_INPUT);
     if (ret != 0) {
@@ -79,7 +100,38 @@ void main(void)
 
     LOG_INF("Press %s on the board", DT_ALIAS_SW0_LABEL);
 
+    // Default the battery logo to empty
+    bu9795_set_symbol(dev_segment, 0, 1);
+    // Turn on default display symbols
+    bu9795_set_symbol(dev_segment, 1, 3);
+
+    struct sensor_value temp, hum;
     while (1) {
-        k_sleep(1000);
+        LOG_INF("looping\n");
+
+        if (update_sensor(&temp, &hum) == 0)
+        {
+            if(dev_sensor != NULL)
+            {
+                bu9795_set_segment(dev_segment, 0, temp.val1 / 10);
+                bu9795_set_segment(dev_segment, 1, temp.val1 % 10);
+                bu9795_set_segment(dev_segment, 2, temp.val2 / 100000);
+
+                bu9795_set_segment(dev_segment, 3, hum.val1 / 10);
+                bu9795_set_segment(dev_segment, 4, hum.val1 % 10);
+                bu9795_set_segment(dev_segment, 5, hum.val2 / 100000);
+
+                bu9795_flush(dev_segment);
+            }
+            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH\n",
+                temp.val1, temp.val2 / 100000,
+                hum.val1, hum.val2 / 100000);
+        }
+        else
+        {
+            LOG_INF("doot\n");
+        }
+
+        k_busy_wait(500000);
     }
 }
