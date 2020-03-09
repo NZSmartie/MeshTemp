@@ -22,6 +22,7 @@
 	aliases {
 		sw0 = &button0;
 		segment0 = &segment0;
+		sensor0 = &sensor0;
   };
 
 	buttons {
@@ -65,6 +66,21 @@
 		spi-max-frequency = <200000>;
 		label = "BU9795";
 		reg = <0>;
+	};
+};
+
+&i2c1 {
+	status = "okay";
+	sda-pin = <13>;
+	scl-pin = <12>;
+
+	clock-frequency = <100000>;
+
+	sensor0: sht3xd@44 {
+		compatible = "sensirion,sht3xd";
+		status = "okay";
+		label = "SHT3XD";
+		reg = <0x44>;
 	};
 };
 

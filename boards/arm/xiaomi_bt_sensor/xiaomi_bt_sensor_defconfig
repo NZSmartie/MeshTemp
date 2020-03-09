@@ -7,6 +7,11 @@ CONFIG_BOARD_NRF51_XIAOMI_BT_SENSOR=y
 # enable GPIO
 CONFIG_GPIO=y
 
+#enable I2C
+CONFIG_I2C=y
+CONFIG_I2C_1=y
+CONFIG_I2C_1_NRF_TWI=y
+
 #enable SPI
 CONFIG_SPI=y
 CONFIG_SPI_0=y
@@ -14,6 +19,10 @@ CONFIG_SPI_0_NRF_SPI=y
 
 # enable the segment display driver
 CONFIG_BU9795=y
+
+# enable the temperature and humidity sensor
+CONFIG_SENSOR=y
+CONFIG_SHT3XD=y
 
 # enable uart driver
 CONFIG_SERIAL=y
