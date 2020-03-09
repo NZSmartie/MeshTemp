@@ -13,87 +13,17 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
-// size of stack area used by each thread
-#define STACKSIZE 1024
-
-// scheduling priority used by each thread
-#define PRIORITY 7
+#include "sensor.h"
 
 static struct gpio_callback button_cb_data;
 
 struct device *dev_button = NULL;
 struct device *dev_segment = NULL;
-struct device *dev_sensor = NULL;
+struct device *dev_battery_voltage = NULL;
 
 void button_pressed(struct device *dev, struct gpio_callback *cb, u32_t pins)
 {
     LOG_INF("Button pressed at %" PRIu32 "\n", k_cycle_get_32());
-}
-
-static int update_sensor(struct sensor_value *temp, struct sensor_value *hum)
-{
-    if(dev_sensor == NULL)
-    {
-        return -ENOENT;
-    }
-
-    LOG_DBG("Fetching sensor data");
-    int ret = sensor_sample_fetch(dev_sensor);
-    if (ret)
-    {
-        LOG_ERR("Could not get fetch sample from %s, errno: %d", dev_sensor->config->name, ret);
-        return ret;
-    }
-
-    LOG_DBG("Getting SENSOR_CHAN_AMBIENT_TEMP");
-    ret = sensor_channel_get(dev_sensor, SENSOR_CHAN_AMBIENT_TEMP, temp);
-    if (ret)
-    {
-        LOG_ERR("Could not get SENSOR_CHAN_AMBIENT_TEMP from %s, errno: %d", dev_sensor->config->name, ret);
-        return ret;
-    }
-
-    LOG_DBG("Getting SENSOR_CHAN_HUMIDITY");
-    ret = sensor_channel_get(dev_sensor, SENSOR_CHAN_HUMIDITY, hum);
-    if(ret)
-    {
-        LOG_ERR("Could not get SENSOR_CHAN_HUMIDITY from %s, errno: %d", dev_sensor->config->name, ret);
-        return ret;
-    }
-
-    LOG_DBG("Sensor updated");
-
-    return 0;
-}
-
-static void sensor_thread(void)
-{
-    struct sensor_value temp, hum;
-    LOG_INF("Sensor thread started");
-
-    while(1)
-    {
-        if (update_sensor(&temp, &hum) == 0)
-        {
-            if(dev_sensor != NULL)
-            {
-                bu9795_set_segment(dev_segment, 0, temp.val1 / 10);
-                bu9795_set_segment(dev_segment, 1, temp.val1 % 10);
-                bu9795_set_segment(dev_segment, 2, temp.val2 / 100000);
-
-                bu9795_set_segment(dev_segment, 3, hum.val1 / 10);
-                bu9795_set_segment(dev_segment, 4, hum.val1 % 10);
-                bu9795_set_segment(dev_segment, 5, hum.val2 / 100000);
-
-                bu9795_flush(dev_segment);
-            }
-            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH\n",
-                temp.val1, temp.val2 / 100000,
-                hum.val1, hum.val2 / 100000);
-        }
-
-        k_sleep(500);
-    }
 }
 
 void main(void)
@@ -108,15 +38,12 @@ void main(void)
         return;
     }
 
+    // dev_battery_voltage = device_get_binding(DT_)
+
     dev_segment = device_get_binding(DT_ALIAS_SEGMENT0_LABEL);
     if (dev_segment == NULL) {
         LOG_ERR("Didn't find %s device", DT_ALIAS_SEGMENT0_LABEL);
         return;
-    }
-
-    dev_sensor = device_get_binding(DT_ALIAS_SENSOR0_LABEL);
-    if (dev_sensor == NULL) {
-        LOG_ERR("Didn't find %s device", DT_ALIAS_SENSOR0_LABEL);
     }
 
     ret = gpio_pin_configure(dev_button, DT_ALIAS_SW0_GPIOS_PIN, DT_ALIAS_SW0_GPIOS_FLAGS | GPIO_INPUT);
@@ -141,11 +68,29 @@ void main(void)
     // Turn on default display symbols
     bu9795_set_symbol(dev_segment, 1, 3);
 
+    struct sensor_value temp, hum;
+
     while(1)
     {
+        if (update_sensor(&temp, &hum) == 0)
+        {
+            if(dev_segment != NULL)
+            {
+                bu9795_set_segment(dev_segment, 0, temp.val1 / 10);
+                bu9795_set_segment(dev_segment, 1, temp.val1 % 10);
+                bu9795_set_segment(dev_segment, 2, temp.val2 / 100000);
+
+                bu9795_set_segment(dev_segment, 3, hum.val1 / 10);
+                bu9795_set_segment(dev_segment, 4, hum.val1 % 10);
+                bu9795_set_segment(dev_segment, 5, hum.val2 / 100000);
+
+                bu9795_flush(dev_segment);
+            }
+            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH\n",
+                temp.val1, temp.val2 / 100000,
+                hum.val1, hum.val2 / 100000);
+        }
+
         k_sleep(1000);
     }
 }
-
-K_THREAD_DEFINE(sensor_thread_id, STACKSIZE, sensor_thread, NULL, NULL, NULL,
-		PRIORITY, 0, K_NO_WAIT);
