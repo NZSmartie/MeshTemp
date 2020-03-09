@@ -13,6 +13,12 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
+// size of stack area used by each thread
+#define STACKSIZE 1024
+
+// scheduling priority used by each thread
+#define PRIORITY 7
+
 static struct gpio_callback button_cb_data;
 
 struct device *dev_button = NULL;
@@ -60,6 +66,36 @@ static int update_sensor(struct sensor_value *temp, struct sensor_value *hum)
     return 0;
 }
 
+static void sensor_thread(void)
+{
+    struct sensor_value temp, hum;
+    LOG_INF("Sensor thread started");
+
+    while(1)
+    {
+        if (update_sensor(&temp, &hum) == 0)
+        {
+            if(dev_sensor != NULL)
+            {
+                bu9795_set_segment(dev_segment, 0, temp.val1 / 10);
+                bu9795_set_segment(dev_segment, 1, temp.val1 % 10);
+                bu9795_set_segment(dev_segment, 2, temp.val2 / 100000);
+
+                bu9795_set_segment(dev_segment, 3, hum.val1 / 10);
+                bu9795_set_segment(dev_segment, 4, hum.val1 % 10);
+                bu9795_set_segment(dev_segment, 5, hum.val2 / 100000);
+
+                bu9795_flush(dev_segment);
+            }
+            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH\n",
+                temp.val1, temp.val2 / 100000,
+                hum.val1, hum.val2 / 100000);
+        }
+
+        k_sleep(500);
+    }
+}
+
 void main(void)
 {
     int ret;
@@ -105,33 +141,11 @@ void main(void)
     // Turn on default display symbols
     bu9795_set_symbol(dev_segment, 1, 3);
 
-    struct sensor_value temp, hum;
-    while (1) {
-        LOG_INF("looping\n");
-
-        if (update_sensor(&temp, &hum) == 0)
-        {
-            if(dev_sensor != NULL)
-            {
-                bu9795_set_segment(dev_segment, 0, temp.val1 / 10);
-                bu9795_set_segment(dev_segment, 1, temp.val1 % 10);
-                bu9795_set_segment(dev_segment, 2, temp.val2 / 100000);
-
-                bu9795_set_segment(dev_segment, 3, hum.val1 / 10);
-                bu9795_set_segment(dev_segment, 4, hum.val1 % 10);
-                bu9795_set_segment(dev_segment, 5, hum.val2 / 100000);
-
-                bu9795_flush(dev_segment);
-            }
-            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH\n",
-                temp.val1, temp.val2 / 100000,
-                hum.val1, hum.val2 / 100000);
-        }
-        else
-        {
-            LOG_INF("doot\n");
-        }
-
-        k_busy_wait(500000);
+    while(1)
+    {
+        k_sleep(1000);
     }
 }
+
+K_THREAD_DEFINE(sensor_thread_id, STACKSIZE, sensor_thread, NULL, NULL, NULL,
+		PRIORITY, 0, K_NO_WAIT);
