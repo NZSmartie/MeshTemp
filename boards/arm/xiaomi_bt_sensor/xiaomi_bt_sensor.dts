@@ -23,6 +23,7 @@
 		sw0 = &button0;
 		segment0 = &segment0;
 		sensor0 = &sensor0;
+		vbatt = &vbatt;
   };
 
 	buttons {
@@ -32,6 +33,17 @@
 			label = "Clicky click";
 		};
 	};
+
+	vbatt: vbatt {
+		compatible = "voltage-divider";
+		io-channels = <&adc 4>;
+		output-ohms = <174000>;
+		full-ohms = <(2800000 + 174000)>;
+	};
+};
+
+&adc {
+	status = "okay";
 };
 
 &gpiote {

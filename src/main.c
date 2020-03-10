@@ -13,6 +13,7 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
+#include "battery.h"
 #include "sensor.h"
 
 static struct gpio_callback button_cb_data;
@@ -72,6 +73,17 @@ void main(void)
 
     while(1)
     {
+        int batt_mV = battery_sample();
+
+		if (batt_mV >= 0)
+        {
+            LOG_INF("Battery voltage: %d.%03dV", batt_mV/1000, batt_mV % 1000);
+        }
+        else
+        {
+			LOG_ERR("Failed to read battery voltage: %d", batt_mV);
+        }
+
         if (update_sensor(&temp, &hum) == 0)
         {
             if(dev_segment != NULL)

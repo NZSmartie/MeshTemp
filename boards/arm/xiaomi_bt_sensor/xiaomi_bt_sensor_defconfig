@@ -20,6 +20,9 @@ CONFIG_SPI=y
 CONFIG_SPI_0=y
 CONFIG_SPI_0_NRF_SPI=y
 
+CONFIG_ADC=y
+CONFIG_ADC_0=y
+
 # enable the segment display driver
 CONFIG_BU9795=y
 
