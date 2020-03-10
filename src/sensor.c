@@ -4,7 +4,7 @@
 #include <drivers/sensor.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(sensor, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(sensor, LOG_LEVEL_INF);
 
 struct device *dev_sensor = NULL;
 
