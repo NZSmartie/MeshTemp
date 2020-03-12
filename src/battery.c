@@ -50,41 +50,40 @@ static const struct divider_config divider_config = {
 };
 
 struct divider_data {
-	struct device *adc;
-	struct device *gpio;
-	struct adc_channel_cfg adc_cfg;
-	struct adc_sequence adc_seq;
+	struct device *adc_device;
+	struct device *gpio_device;
+	struct adc_channel_cfg adc_config;
+	struct adc_sequence adc_sequence;
 	s16_t raw;
 };
 static struct divider_data divider_data;
 
 static int divider_setup(void)
 {
-	const struct divider_config *cfg = &divider_config;
-	const struct io_channel_config *iocp = &cfg->io_channel;
-	const struct gpio_channel_config *gcp = &cfg->power_gpios;
-	struct divider_data *ddp = &divider_data;
-	struct adc_sequence *sequence = &ddp->adc_seq;
-	struct adc_channel_cfg *channel_cfg = &ddp->adc_cfg;
+	const struct divider_config *config = &divider_config;
+	const struct io_channel_config *io_channel = &config->io_channel;
+	const struct gpio_channel_config *gpio_config = &config->power_gpios;
+	struct adc_sequence *sequence = &divider_data.adc_sequence;
+	struct adc_channel_cfg *channel_cfg = &divider_data.adc_config;
 	int rc;
 
-	ddp->adc = device_get_binding(iocp->label);
-	if (ddp->adc == NULL) {
-		LOG_ERR("Failed to get ADC %s", iocp->label);
+	divider_data.adc_device = device_get_binding(io_channel->label);
+	if (divider_data.adc_device == NULL) {
+		LOG_ERR("Failed to get ADC %s", io_channel->label);
 		return -ENOENT;
 	}
 
-	if (gcp->label) {
-		ddp->gpio = device_get_binding(gcp->label);
-		if (ddp->gpio == NULL) {
-			LOG_ERR("Failed to get GPIO %s", gcp->label);
+	if (gpio_config->label) {
+		divider_data.gpio_device = device_get_binding(gpio_config->label);
+		if (divider_data.gpio_device == NULL) {
+			LOG_ERR("Failed to get GPIO %s", gpio_config->label);
 			return -ENOENT;
 		}
-		rc = gpio_pin_configure(ddp->gpio, gcp->pin,
-					GPIO_OUTPUT_INACTIVE | gcp->flags);
+		rc = gpio_pin_configure(divider_data.gpio_device, gpio_config->pin,
+					GPIO_OUTPUT_INACTIVE | gpio_config->flags);
 		if (rc != 0) {
 			LOG_ERR("Failed to control feed %s.%u: %d",
-				gcp->label, gcp->pin, rc);
+				gpio_config->label, gpio_config->pin, rc);
 			return rc;
 		}
 	}
@@ -92,8 +91,8 @@ static int divider_setup(void)
 #ifdef CONFIG_ADC_NRFX_SAADC
 	*sequence = (struct adc_sequence){
 		.channels = BIT(0),
-		.buffer = &ddp->raw,
-		.buffer_size = sizeof(ddp->raw),
+		.buffer = &divider_data->raw,
+		.buffer_size = sizeof(divider_data->raw),
 		.oversampling = 4,
 		.calibrate = true,
 	};
@@ -109,28 +108,28 @@ static int divider_setup(void)
 #elif defined(CONFIG_ADC_NRFX_ADC)
 	*sequence = (struct adc_sequence){
 		.channels = BIT(0),
-		.buffer = &ddp->raw,
-		.buffer_size = sizeof(ddp->raw),
+		.buffer = &divider_data.raw,
+		.buffer_size = sizeof(divider_data.raw),
 		.oversampling = 0,
 		.calibrate = true,
+	    .resolution = 10,
 	};
 
 	*channel_cfg = (struct adc_channel_cfg){
+        .acquisition_time = ADC_ACQ_TIME_DEFAULT,
 		.gain = BATTERY_ADC_GAIN,
 		.reference = ADC_REF_INTERNAL,
         .channel_id = 0,
 #if CONFIG_ADC_CONFIGURABLE_INPUTS
-		.input_positive = iocp->channel,
+		.input_positive = io_channel->channel,
 #endif
 	};
-
-	sequence->resolution = 10;
 #else /* CONFIG_ADC_var */
 #error Unsupported ADC
 #endif /* CONFIG_ADC_var */
 
-	rc = adc_channel_setup(ddp->adc, channel_cfg);
-    Z_LOG(rc < 0 ? LOG_LEVEL_ERR : LOG_LEVEL_INF, "Setup AIN%u got %d", iocp->channel, rc);
+	rc = adc_channel_setup(divider_data.adc_device, channel_cfg);
+    Z_LOG(rc < 0 ? LOG_LEVEL_ERR : LOG_LEVEL_INF, "Setup AIN%u got %d", io_channel->channel, rc);
 
 	return rc;
 }
@@ -153,12 +152,12 @@ int battery_measure_enable(bool enable)
 	int rc = -ENOENT;
 
 	if (battery_ok) {
-		const struct divider_data *ddp = &divider_data;
-		const struct gpio_channel_config *gcp = &divider_config.power_gpios;
+		const struct divider_data *data = &divider_data;
+		const struct gpio_channel_config *gpio_config = &divider_config.power_gpios;
 
 		rc = 0;
-		if (ddp->gpio) {
-			rc = gpio_pin_set(ddp->gpio, gcp->pin, enable);
+		if (data->gpio_device) {
+			rc = gpio_pin_set(data->gpio_device, gpio_config->pin, enable);
 		}
 	}
 	return rc;
@@ -169,22 +168,22 @@ int battery_sample(void)
 	int rc = -ENOENT;
 
 	if (battery_ok) {
-		struct divider_data *ddp = &divider_data;
-		const struct divider_config *dcp = &divider_config;
-		struct adc_sequence *sp = &ddp->adc_seq;
+		struct divider_data *data = &divider_data;
+		const struct divider_config *config = &divider_config;
+		struct adc_sequence *sequence = &data->adc_sequence;
 
-		rc = adc_read(ddp->adc, sp);
-		sp->calibrate = false;
+		rc = adc_read(data->adc_device, sequence);
+		sequence->calibrate = false;
 		if (rc == 0) {
-			s32_t val = ddp->raw;
+			s32_t val = data->raw;
 
-			adc_raw_to_millivolts(adc_ref_internal(ddp->adc),
-					      ddp->adc_cfg.gain,
-					      sp->resolution,
+			adc_raw_to_millivolts(adc_ref_internal(data->adc_device),
+					      data->adc_config.gain,
+					      sequence->resolution,
 					      &val);
-			rc = val * (u64_t)dcp->full_ohm / dcp->output_ohm;
+			rc = val * (u64_t)config->full_ohm / config->output_ohm;
 			LOG_INF("raw %u ~ %u mV => %d mV\n",
-				ddp->raw, val, rc);
+				data->raw, val, rc);
 		}
 	}
 
