@@ -119,6 +119,9 @@ static int divider_setup(void)
 		.gain = BATTERY_ADC_GAIN,
 		.reference = ADC_REF_INTERNAL,
         .channel_id = 0,
+#if CONFIG_ADC_CONFIGURABLE_INPUTS
+		.input_positive = iocp->channel,
+#endif
 	};
 
 	sequence->resolution = 10;
