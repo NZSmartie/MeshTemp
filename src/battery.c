@@ -121,7 +121,7 @@ static int divider_setup(void)
 		.reference = ADC_REF_INTERNAL,
         .channel_id = 0,
 #if CONFIG_ADC_CONFIGURABLE_INPUTS
-		.input_positive = io_channel->channel,
+		.input_positive = BIT(io_channel->channel), // Why is this a bit value?
 #endif
 	};
 #else /* CONFIG_ADC_var */
