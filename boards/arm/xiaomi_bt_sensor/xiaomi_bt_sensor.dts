@@ -37,8 +37,8 @@
 	vbatt: vbatt {
 		compatible = "voltage-divider";
 		io-channels = <&adc 4>;
-		output-ohms = <174000>;
-		full-ohms = <(2800000 + 174000)>;
+		output-ohms = <180000>;
+		full-ohms = <(180000 + 180000)>;
 	};
 };
 
