@@ -58,6 +58,20 @@ struct divider_data {
 };
 static struct divider_data divider_data;
 
+const struct battery_level_point alkaline_level_point[] = {
+	{ 10000, 1490 },
+	{ 9000, 1350 },
+	{ 8000, 1270 },
+	{ 7000, 1200 },
+	{ 6000, 1160 },
+	{ 5000, 1120 },
+	{ 4000, 1100 },
+	{ 3000, 1080 },
+	{ 2000, 1040 },
+	{ 1000, 980 },
+	{ 0, 620 },
+};
+
 static int divider_setup(void)
 {
 	const struct divider_config *config = &divider_config;

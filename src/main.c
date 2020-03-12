@@ -77,7 +77,22 @@ void main(void)
 
 		if (batt_mV >= 0)
         {
-            LOG_INF("Battery voltage: %d.%03dV", batt_mV/1000, batt_mV % 1000);
+            int batt_pptt = battery_level_pptt(batt_mV, alkaline_level_point) / 100;
+            LOG_INF("Battery: %d%% (%d.%03dV)", batt_pptt, batt_mV / 1000, batt_mV % 1000);
+
+            if (batt_pptt > 80) {
+                bu9795_set_symbol(dev_segment, 0, 6);
+            } else if (batt_pptt > 60) {
+                bu9795_set_symbol(dev_segment, 0, 5);
+            } else if (batt_pptt > 40) {
+                bu9795_set_symbol(dev_segment, 0, 4);
+            } else if (batt_pptt > 20) {
+                bu9795_set_symbol(dev_segment, 0, 3);
+            } else if (batt_pptt > 0) {
+                bu9795_set_symbol(dev_segment, 0, 2);
+            } else {
+                bu9795_set_symbol(dev_segment, 0, 1);
+            }
         }
         else
         {

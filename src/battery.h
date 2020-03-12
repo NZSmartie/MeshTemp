@@ -37,6 +37,8 @@ struct battery_level_point {
 	u16_t lvl_mV;
 };
 
+extern const struct battery_level_point alkaline_level_point[];
+
 /** Calculate the estimated battery level based on a measured voltage.
  *
  * @param batt_mV a measured battery voltage level.
