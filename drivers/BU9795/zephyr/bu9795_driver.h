@@ -15,7 +15,7 @@ extern "C" {
 struct bu9795_driver_api {
 	void (*clear)(struct device *dev);
 	void (*set_segment)(struct device *dev, u8_t segment, u8_t value);
-	void (*set_symbol)(struct device *dev, u8_t symbol, u8_t state);
+	void (*set_symbol)(struct device *dev, u32_t symbols);
 	void (*flush)(struct device *dev);
 #if CONFIG_BU9795_TEST_PATTERN
 	void (*set_test_pattern)(struct device *dev, int stage);
@@ -34,10 +34,10 @@ static inline void bu9795_set_segment(struct device *dev, u8_t segment, u8_t val
 	api->set_segment(dev, segment, value);
 }
 
-static inline void bu9795_set_symbol(struct device *dev, u8_t symbol, u8_t state)
+static inline void bu9795_set_symbol(struct device *dev, u32_t symbols)
 {
 	const struct bu9795_driver_api *api = dev->driver_api;
-	api->set_symbol(dev, symbol, state);
+	api->set_symbol(dev, symbols);
 }
 
 static inline void bu9795_flush(struct device *dev)

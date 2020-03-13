@@ -7,8 +7,6 @@
 #include <drivers/gpio.h>
 #include <drivers/sensor.h>
 #include <sys/printk.h>
-// TODO: Abstract this API to a generic segmented display
-#include <bu9795_driver.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
@@ -57,6 +55,8 @@ void main(void)
 
     struct sensor_value temp, hum;
 
+    display_set_symbols(DISPLAY_SYMBOL_HORIZONTAL_RULE);
+
     while(1)
     {
         int batt_mV = battery_sample();
@@ -79,6 +79,7 @@ void main(void)
                 temp.val1, temp.val2 / 100000,
                 hum.val1, hum.val2 / 100000);
 
+            display_set_symbols(DISPLAY_SYMBOL_CELSIUS | DISPLAY_SYMBOL_HUMIDITY);
             display_set_temperature(&temp);
             display_set_humidity(&hum);
         }
