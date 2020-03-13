@@ -14,7 +14,7 @@ extern "C" {
 
 struct bu9795_driver_api {
 	void (*clear)(struct device *dev);
-	void (*set_segment)(struct device *dev, u8_t segment, u8_t value);
+	void (*set_segment)(struct device *dev, int segment, int value);
 	void (*set_symbol)(struct device *dev, u32_t symbols);
 	void (*flush)(struct device *dev);
 #if CONFIG_BU9795_TEST_PATTERN
@@ -28,7 +28,7 @@ static inline void bu9795_clear(struct device *dev)
 	api->clear(dev);
 }
 
-static inline void bu9795_set_segment(struct device *dev, u8_t segment, u8_t value)
+static inline void bu9795_set_segment(struct device *dev, int segment, int value)
 {
 	const struct bu9795_driver_api *api = dev->driver_api;
 	api->set_segment(dev, segment, value);

@@ -268,7 +268,7 @@ static void clear_impl(struct device *dev)
     bu9795_flush(dev);
 }
 
-static void set_segment_impl(struct device *dev, u8_t segment, u8_t value)
+static void set_segment_impl(struct device *dev, int segment, int value)
 {
     const struct bu9795_config *config = dev->config->config_info;
     struct bu9795_data *data = dev->driver_data;
