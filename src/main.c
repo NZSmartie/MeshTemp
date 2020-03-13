@@ -14,13 +14,12 @@
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
 #include "battery.h"
+#include "display.h"
 #include "sensor.h"
 
 static struct gpio_callback button_cb_data;
 
 struct device *dev_button = NULL;
-struct device *dev_segment = NULL;
-struct device *dev_battery_voltage = NULL;
 
 void button_pressed(struct device *dev, struct gpio_callback *cb, u32_t pins)
 {
@@ -36,14 +35,6 @@ void main(void)
     dev_button = device_get_binding(DT_ALIAS_SW0_GPIOS_CONTROLLER);
     if (dev_button == NULL) {
         LOG_ERR("Didn't find %s device", DT_ALIAS_SW0_GPIOS_CONTROLLER);
-        return;
-    }
-
-    // dev_battery_voltage = device_get_binding(DT_)
-
-    dev_segment = device_get_binding(DT_ALIAS_SEGMENT0_LABEL);
-    if (dev_segment == NULL) {
-        LOG_ERR("Didn't find %s device", DT_ALIAS_SEGMENT0_LABEL);
         return;
     }
 
@@ -64,11 +55,6 @@ void main(void)
 
     LOG_INF("Press %s on the board", DT_ALIAS_SW0_LABEL);
 
-    // Default the battery logo to empty
-    bu9795_set_symbol(dev_segment, 0, 1);
-    // Turn on default display symbols
-    bu9795_set_symbol(dev_segment, 1, 3);
-
     struct sensor_value temp, hum;
 
     while(1)
@@ -80,19 +66,7 @@ void main(void)
             int batt_pptt = battery_level_pptt(batt_mV, alkaline_level_point) / 100;
             LOG_INF("Battery: %d%% (%d.%03dV)", batt_pptt, batt_mV / 1000, batt_mV % 1000);
 
-            if (batt_pptt > 80) {
-                bu9795_set_symbol(dev_segment, 0, 6);
-            } else if (batt_pptt > 60) {
-                bu9795_set_symbol(dev_segment, 0, 5);
-            } else if (batt_pptt > 40) {
-                bu9795_set_symbol(dev_segment, 0, 4);
-            } else if (batt_pptt > 20) {
-                bu9795_set_symbol(dev_segment, 0, 3);
-            } else if (batt_pptt > 0) {
-                bu9795_set_symbol(dev_segment, 0, 2);
-            } else {
-                bu9795_set_symbol(dev_segment, 0, 1);
-            }
+            display_set_battery(batt_pptt);
         }
         else
         {
@@ -101,21 +75,12 @@ void main(void)
 
         if (update_sensor(&temp, &hum) == 0)
         {
-            if(dev_segment != NULL)
-            {
-                bu9795_set_segment(dev_segment, 0, temp.val1 / 10);
-                bu9795_set_segment(dev_segment, 1, temp.val1 % 10);
-                bu9795_set_segment(dev_segment, 2, temp.val2 / 100000);
-
-                bu9795_set_segment(dev_segment, 3, hum.val1 / 10);
-                bu9795_set_segment(dev_segment, 4, hum.val1 % 10);
-                bu9795_set_segment(dev_segment, 5, hum.val2 / 100000);
-
-                bu9795_flush(dev_segment);
-            }
             LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH\n",
                 temp.val1, temp.val2 / 100000,
                 hum.val1, hum.val2 / 100000);
+
+            display_set_temperature(&temp);
+            display_set_humidity(&hum);
         }
 
         k_sleep(1000);
