@@ -518,7 +518,7 @@ static const struct bu9795_config bu9795_config_0 = {
 
 DEVICE_AND_API_INIT(bu9795_0, DT_INST_0_ROHM_BU9795_LABEL,
             bu9795_init, &bu9795_data_0, &bu9795_config_0,
-            APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY,
+            POST_KERNEL, CONFIG_APPLICATION_INIT_PRIORITY,
             &bu9795_driver_api_impl);
 
 #endif
