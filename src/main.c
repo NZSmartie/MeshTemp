@@ -21,7 +21,7 @@ struct device *dev_button = NULL;
 
 void button_pressed(struct device *dev, struct gpio_callback *cb, u32_t pins)
 {
-    LOG_INF("Button pressed at %" PRIu32 "\n", k_cycle_get_32());
+    LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
 }
 
 void main(void)
@@ -75,7 +75,7 @@ void main(void)
 
         if (update_sensor(&temp, &hum) == 0)
         {
-            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH\n",
+            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH",
                 temp.val1, temp.val2 / 100000,
                 hum.val1, hum.val2 / 100000);
 

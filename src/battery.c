@@ -18,7 +18,7 @@
 
 #include "battery.h"
 
-LOG_MODULE_REGISTER(BATTERY, CONFIG_ADC_LOG_LEVEL);
+LOG_MODULE_REGISTER(battery, LOG_LEVEL_INF);
 
 #define BATTERY_ADC_GAIN ADC_GAIN_1_3
 
@@ -143,7 +143,7 @@ static int divider_setup(void)
 #endif /* CONFIG_ADC_var */
 
 	rc = adc_channel_setup(divider_data.adc_device, channel_cfg);
-    Z_LOG(rc < 0 ? LOG_LEVEL_ERR : LOG_LEVEL_INF, "Setup AIN%u got %d", io_channel->channel, rc);
+    Z_LOG(rc < 0 ? LOG_LEVEL_ERR : LOG_LEVEL_DBG, "Setup AIN%u got %d", io_channel->channel, rc);
 
 	return rc;
 }
@@ -155,7 +155,7 @@ static int battery_setup(struct device *arg)
 	int rc = divider_setup();
 
 	battery_ok = (rc == 0);
-	LOG_INF("Battery setup: %d %d", rc, battery_ok);
+	LOG_DBG("Battery setup: %d %d", rc, battery_ok);
 	return rc;
 }
 
@@ -196,7 +196,7 @@ int battery_sample(void)
 					      sequence->resolution,
 					      &val);
 			rc = val * (u64_t)config->full_ohm / config->output_ohm;
-			LOG_INF("raw %u ~ %u mV => %d mV\n",
+			LOG_DBG("raw %u ~ %u mV => %d mV",
 				data->raw, val, rc);
 		}
 	}
