@@ -194,7 +194,7 @@ static int bu9795_write_data(struct device *dev, u8_t addr, const u8_t *payload,
 static void flush_impl(struct device *dev)
 {
     struct bu9795_data *data = dev->driver_data;
-    return bu9795_write_data(dev, 0, data->data, BU9795_SEG_REGISTER_SIZE);
+    bu9795_write_data(dev, 0, data->data, BU9795_SEG_REGISTER_SIZE);
 }
 
 static int bu9795_init(struct device *dev)
