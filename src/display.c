@@ -23,10 +23,12 @@ int display_set_temperature(const struct sensor_value *value)
         bu9795_set_segment(dev_segment, 0, -1);
         bu9795_set_segment(dev_segment, 1, -1);
         bu9795_set_segment(dev_segment, 2, -1);
+        display_clear_symbols(DISPLAY_SYMBOL_TEMPERATURE_DECIMAL);
     } else {
         bu9795_set_segment(dev_segment, 0, value->val1 / 10);
         bu9795_set_segment(dev_segment, 1, value->val1 % 10);
         bu9795_set_segment(dev_segment, 2, value->val2 / 100000);
+        display_set_symbols(DISPLAY_SYMBOL_TEMPERATURE_DECIMAL);
     }
 
     bu9795_flush(dev_segment);
@@ -44,10 +46,12 @@ int display_set_humidity(const struct sensor_value *value)
         bu9795_set_segment(dev_segment, 3, -1);
         bu9795_set_segment(dev_segment, 4, -1);
         bu9795_set_segment(dev_segment, 5, -1);
+        display_clear_symbols(DISPLAY_SYMBOL_HUMIDITY_DECIMAL);
     } else {
         bu9795_set_segment(dev_segment, 3, value->val1 / 10);
         bu9795_set_segment(dev_segment, 4, value->val1 % 10);
         bu9795_set_segment(dev_segment, 5, value->val2 / 100000);
+        display_set_symbols(DISPLAY_SYMBOL_HUMIDITY_DECIMAL);
     }
 
     bu9795_flush(dev_segment);
@@ -61,17 +65,17 @@ int display_set_battery(int percent)
     }
 
     if (percent > 80) {
-        bu9795_set_segment(dev_segment, 0, 6);
+        bu9795_set_segment(dev_segment, 6, 6);
     } else if (percent > 60) {
-        bu9795_set_segment(dev_segment, 0, 5);
+        bu9795_set_segment(dev_segment, 6, 5);
     } else if (percent > 40) {
-        bu9795_set_segment(dev_segment, 0, 4);
+        bu9795_set_segment(dev_segment, 6, 4);
     } else if (percent > 20) {
-        bu9795_set_segment(dev_segment, 0, 3);
+        bu9795_set_segment(dev_segment, 6, 3);
     } else if (percent > 0) {
-        bu9795_set_segment(dev_segment, 0, 2);
+        bu9795_set_segment(dev_segment, 6, 2);
     } else {
-        bu9795_set_segment(dev_segment, 0, 1);
+        bu9795_set_segment(dev_segment, 6, 1);
     }
 
     bu9795_flush(dev_segment);
@@ -80,19 +84,33 @@ int display_set_battery(int percent)
 
 int display_set_symbols(u8_t symbols)
 {
+    u32_t old_symbols = set_symbols;
     set_symbols |= symbols;
-    bu9795_set_symbol(dev_segment, set_symbols);
 
-    bu9795_flush(dev_segment);
+    if (dev_segment == NULL) {
+        return -ENOENT;
+    }
+
+    if (set_symbols != old_symbols) {
+        bu9795_set_symbol(dev_segment, set_symbols);
+        bu9795_flush(dev_segment);
+    }
     return 0;
 }
 
 int display_clear_symbols(u8_t symbols)
 {
+    u32_t old_symbols = set_symbols;
     set_symbols &= ~symbols;
-    bu9795_set_symbol(dev_segment, set_symbols);
 
-    bu9795_flush(dev_segment);
+    if (dev_segment == NULL) {
+        return -ENOENT;
+    }
+
+    if (set_symbols != old_symbols) {
+        bu9795_set_symbol(dev_segment, set_symbols);
+        bu9795_flush(dev_segment);
+    }
     return 0;
 }
 
@@ -103,6 +121,7 @@ static int display_setup(struct device *arg)
         LOG_ERR("Didn't find %s device", DT_ALIAS_SEGMENT0_LABEL);
         return -ENOENT;
     }
+    LOG_DBG("Found display device %s", DT_ALIAS_SEGMENT0_LABEL);
 
     display_set_temperature(NULL);
 
