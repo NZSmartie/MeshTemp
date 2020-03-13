@@ -289,7 +289,9 @@ static void set_segment_impl(struct device *dev, u8_t segment, u8_t value)
     for(int i = 0; i < BU9795_SEG_REGISTER_SIZE; i++)
     {
         data->data[i] &= mapping->mask[i];
-        data->data[i] |= mapping->digits[value][i];
+        if(value >= 0) {
+            data->data[i] |= mapping->digits[value][i];
+        }
     }
 
     // bu9795_flush(dev);
