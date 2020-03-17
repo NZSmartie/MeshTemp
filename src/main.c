@@ -7,6 +7,7 @@
 #include <drivers/gpio.h>
 #include <drivers/sensor.h>
 #include <sys/printk.h>
+#include <bluetooth/bluetooth.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
@@ -14,6 +15,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 #include "battery.h"
 #include "display.h"
 #include "sensor.h"
+#include "bluetooth.h"
 
 static struct gpio_callback button_cb_data;
 
@@ -51,6 +53,15 @@ void main(void)
     gpio_init_callback(&button_cb_data, button_pressed, BIT(DT_ALIAS_SW0_GPIOS_PIN));
     gpio_add_callback(dev_button, &button_cb_data);
 
+
+    ret = bt_enable(NULL);
+	if (ret != 0) {
+		LOG_ERR("Bluetooth init failed (Error %d)", ret);
+	} else {
+        bluetooth_ready();
+        display_set_symbols(DISPLAY_SYMBOL_BLUETOOTH);
+    }
+
     LOG_INF("Press %s on the board", DT_ALIAS_SW0_LABEL);
 
     struct sensor_value temp, hum;
@@ -67,6 +78,7 @@ void main(void)
             LOG_INF("Battery: %d%% (%d.%03dV)", batt_pptt, batt_mV / 1000, batt_mV % 1000);
 
             display_set_battery(batt_pptt);
+            bluetooth_update_battery(batt_pptt);
         }
         else
         {
@@ -75,13 +87,16 @@ void main(void)
 
         if (update_sensor(&temp, &hum) == 0)
         {
-            LOG_INF("SHT3XD: %d.%d Cel ; %d.%d %%RH",
+            LOG_INF("Sensor: %d.%d°C, %d.%d%%RH",
                 temp.val1, temp.val2 / 100000,
                 hum.val1, hum.val2 / 100000);
 
             display_set_symbols(DISPLAY_SYMBOL_CELSIUS | DISPLAY_SYMBOL_HUMIDITY);
             display_set_temperature(&temp);
             display_set_humidity(&hum);
+
+            bluetooth_update_temperature((temp.val1 * 100) + (temp.val2 / 10000));
+            bluetooth_update_humidity((hum.val1 * 100) + (hum.val2 / 10000));
         }
 
         k_sleep(1000);
