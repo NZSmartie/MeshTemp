@@ -21,14 +21,19 @@ static struct gpio_callback button_cb_data;
 
 struct device *dev_button = NULL;
 
+static bool allow_bonding = false;
+
 void button_pressed(struct device *dev, struct gpio_callback *cb, u32_t pins)
 {
     LOG_INF("Button pressed at %" PRIu32, k_cycle_get_32());
+    allow_bonding = true;
 }
 
 void main(void)
 {
     int ret;
+    bool bluetooth_enabled = false;
+    u32_t loop_count = 0;
 
     LOG_INF("Hello world!");
 
@@ -59,7 +64,7 @@ void main(void)
 		LOG_ERR("Bluetooth init failed (Error %d)", ret);
 	} else {
         bluetooth_ready();
-        display_set_symbols(DISPLAY_SYMBOL_BLUETOOTH);
+        bluetooth_enabled = true;
     }
 
     LOG_INF("Press %s on the board", DT_ALIAS_SW0_LABEL);
@@ -70,6 +75,19 @@ void main(void)
 
     while(1)
     {
+        if (bluetooth_enabled){
+            if(allow_bonding){
+                bluetooth_set_bonding(true);
+                allow_bonding = false;
+            }
+
+            if (bluetooth_get_bonding() && (loop_count % 2 == 0)) {
+                display_clear_symbols(DISPLAY_SYMBOL_BLUETOOTH);
+            }else {
+                display_set_symbols(DISPLAY_SYMBOL_BLUETOOTH);
+            }
+
+        }
         int batt_mV = battery_sample();
 
 		if (batt_mV >= 0)
@@ -100,5 +118,6 @@ void main(void)
         }
 
         k_sleep(1000);
+        loop_count++;
     }
 }

@@ -37,6 +37,8 @@ extern
 #endif
 struct bt_conn *default_conn;
 
+static bool allow_bonding = false;
+
 static const struct bt_data bluettoth_advertise_data[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 	BT_DATA_BYTES(BT_DATA_UUID16_ALL,
@@ -53,6 +55,10 @@ static void bluetooth_connected(struct bt_conn *conn, u8_t err)
 		default_conn = bt_conn_ref(conn);
 		LOG_INF("Bluetooth connected");
 	}
+
+    if (bt_conn_set_security(conn, BT_SECURITY_L3)) {
+        printk("Failed to set security\n");
+    }
 }
 
 static void bluetooth_disconnected(struct bt_conn *conn, u8_t reason)
@@ -72,7 +78,12 @@ static struct bt_conn_cb bluetooth_connection_callbacks = {
 
 static void auth_confirm(struct bt_conn *conn)
 {
-
+    if(allow_bonding){
+        bt_conn_auth_pairing_confirm(conn);
+    } else {
+        bt_conn_auth_cancel(conn);
+    }
+    allow_bonding = false;
 }
 
 static void auth_cancel(struct bt_conn *conn)
@@ -84,9 +95,18 @@ static void auth_cancel(struct bt_conn *conn)
 	LOG_WRN("Pairing cancelled: %s", addr);
 }
 
+static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
+{
+	LOG_WRN("Pairing Failed (%d)", reason);
+}
+
 static struct bt_conn_auth_cb bluetooth_auth_cb_display = {
 	.cancel = auth_cancel,
     .pairing_confirm = auth_confirm,
+    .pairing_failed = pairing_failed,
+    .passkey_display = NULL,
+    .passkey_entry = NULL,
+    .passkey_confirm = NULL,
 };
 
 void bluetooth_ready()
@@ -112,4 +132,12 @@ void bluetooth_update_battery(u8_t level)
 #if CONFIG_BT_GATT_BAS
     bt_gatt_bas_set_battery_level(level);
 #endif
+}
+
+void bluetooth_set_bonding(bool allow) {
+    allow_bonding = allow;
+}
+
+bool bluetooth_get_bonding() {
+    return allow_bonding;
 }

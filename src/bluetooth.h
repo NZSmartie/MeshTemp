@@ -1,6 +1,8 @@
 #pragma once
 
 void bluetooth_ready(void);
+void bluetooth_set_bonding(bool allow);
+bool bluetooth_get_bonding();
 
 void bluetooth_update_battery(u8_t level);
 
