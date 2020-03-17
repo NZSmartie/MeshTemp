@@ -6,4 +6,4 @@
 
 config BOARD_NRF51_XIAOMI_BT_SENSOR
 	bool "nRF51 Xiaomi Bluetooth Sensor"
-	depends on SOC_NRF51822_QFAA
+	depends on SOC_NRF51822_QFAA || SOC_NRF51822_QFAC

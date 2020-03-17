@@ -2,6 +2,11 @@
 
 cmake_minimum_required(VERSION 3.13.1)
 
+if(USE_DEV_BOARD)
+  set(CONF_FILE prj.conf;boards/xiaomi_bt_sensor_dev.conf)
+  set(DTC_OVERLAY_FILE boards/xiaomi_bt_sensor_dev.overlay)
+endif()
+
 list(APPEND ZEPHYR_EXTRA_MODULES
   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/BU9795
   )

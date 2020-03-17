@@ -4,6 +4,11 @@
 / {
 	model = "Xiaomi Bluetooth Temperature/Humidity Sensor (development)";
 	compatible = "nordic,nrf51822-qfac", "nordic,nrf51822";
+
+	chosen {
+		// Update Zephyr to use 32KB of SRAM instad of 16KB previously selected in the .dts file
+		zephyr,sram = &sram0;
+	};
 };
 
 // Because ofthe #include statement above, we need to re-enable peripherals
