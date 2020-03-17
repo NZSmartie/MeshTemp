@@ -30,8 +30,24 @@ cd MeshTemp && west build
 
 ### Building for development
 
-The modded board used for development reasons uses an overlay file that targets the nRF51822 QFAC. Building for this target is don by
+The modded board used for development reasons uses an overlay file that targets the nRF51822 QFAC. Building for this target is done by
 
 ```bash
-west build -b xiaomi_bt_sensor -- -DDTC_OVERLAY_FILE=boards/xiaomi_bt_sensor_dev.overlay
+west build -- -DUSE_DEV_BOARD=1
 ```
+
+## Progress
+
+- [X] Display driver for Zephyr is implemented
+  - [X] Display is mapped out
+  - [X] Display sensor values
+- [X] Mapped GPIO
+  - Single button on back
+  - Battery measure through ADC 4
+- [X] Measure battery voltage through ADC
+- [X] Read sensor data (Zephyr has built in support for SHT3Xd)
+- [X] Bluetooth support
+  - [X] Implement Bluetooth Environmental Sensing Service (ESS)
+  - [X] Require bonded device before allowing read/write to ESS characteristics
+  - [ ] Bluetooth Mesh Support
+- [ ] Power Management (power saving)
