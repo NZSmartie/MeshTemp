@@ -55,6 +55,7 @@ struct ess_sensor {
 
     // ES trigger setting - Value Notification condition
     u8_t condition;
+    u16_t ccc;
     union {
         u32_t seconds;
         // Reference temperature
@@ -103,20 +104,11 @@ static ssize_t read_u16(struct bt_conn *conn, const struct bt_gatt_attr *attr, v
 
 static void humid_ccc_cfg_changed(const struct bt_gatt_attr *attr, u16_t value)
 {
-    if (value == BT_GATT_CCC_NOTIFY){
-        sensor_humid.meas.flags |= ESS_MEASUREMENT_FLAG_NOTIFY_MEASUREMENT;
-    } else {
-        sensor_humid.meas.flags &= ~ESS_MEASUREMENT_FLAG_NOTIFY_MEASUREMENT;
-    }
+    sensor_humid.ccc = value;
 }
 static void temp_ccc_cfg_changed(const struct bt_gatt_attr *attr, u16_t value)
 {
-
-    if (value == BT_GATT_CCC_NOTIFY){
-        sensor_temp.meas.flags |= ESS_MEASUREMENT_FLAG_NOTIFY_MEASUREMENT;
-    } else {
-        sensor_temp.meas.flags &= ~ESS_MEASUREMENT_FLAG_NOTIFY_MEASUREMENT;
-    }
+    sensor_temp.ccc = value;
 }
 
 struct read_es_measurement_rp {
@@ -240,10 +232,12 @@ static void update_ess_value(struct bt_conn *conn, const struct bt_gatt_attr *ch
     sensor->value = value;
 
     // Trigger notification if conditions are met
-    if (notify && sensor->meas.flags & ESS_MEASUREMENT_FLAG_NOTIFY_MEASUREMENT) {
-        value = sys_cpu_to_le16(sensor->value);
+    if (notify){
+        if (sensor->ccc == BT_GATT_CCC_NOTIFY) {
+            value = sys_cpu_to_le16(sensor->value);
 
-        bt_gatt_notify(conn, chrc, &value, sizeof(value));
+            bt_gatt_notify(conn, chrc, &value, sizeof(value));
+        }
     }
 }
 
